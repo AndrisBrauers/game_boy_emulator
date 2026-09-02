@@ -1,9 +1,10 @@
 CC = clang
+CFLAGS = -Wall -Wextra -Werror -std=c11 -g -Iinclude
 
-CFLAGS = -Wall -Wextra -Werror -std=c11 -g
+SRC = src/main.c src/cartridge.c
 
-gameboy: src/main.c
-	$(CC) $(CFLAGS) src/main.c -o gameboy
+gameboy: $(SRC)
+	$(CC) $(CFLAGS) $(SRC) -o gameboy
 
 clean:
 	rm -f gameboy
