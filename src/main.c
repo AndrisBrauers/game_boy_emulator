@@ -55,5 +55,13 @@ int main(int argc, char **argv)
 
     fclose(file);
 
+    int i;
+    for(i = 0; i < 16; i++)
+    {
+        printf(" %.2x", rom_ptr[i]);
+    }
+
+    free(rom_ptr);
+
     return 0;
 }
