@@ -20,28 +20,20 @@ int main(int argc, char **argv)
     initilize_cpu(&cpu);
     print_cpu(&cpu);
 
+    printf("F: %.2x \n", cpu.F);
+    set_flag(&cpu, FLAG_Z, ON);
+    printf("F: %.2x \n", read_flag(&cpu, FLAG_Z));
+    set_flag(&cpu, FLAG_Z, OFF);
+    printf("F: %.2x \n", read_flag(&cpu, FLAG_Z));
+    set_flag(&cpu, FLAG_H, ON);
+    printf("F: %.2x \n", read_flag(&cpu, FLAG_H));
+    set_flag(&cpu, FLAG_ALL, ON);
+    printf("F: %.2x \n", cpu.F);
 
-    if (cpu_step(&cpu, &game_cartridge) == -1) {
-        printf("Programm stopped");
-        return 1;
-    };
-    if (cpu_step(&cpu, &game_cartridge) == -1) {
-        printf("Programm stopped");
-        return 1;
-    };
-    if (cpu_step(&cpu, &game_cartridge) == -1) {
-        printf("Programm stopped");
-        return 1;
-    };
-    if (cpu_step(&cpu, &game_cartridge) == -1) {
-        printf("Programm stopped");
-        return 1;
-    };
-    if (cpu_step(&cpu, &game_cartridge) == -1) {
-        printf("Programm stopped");
-        return 1;
-    };
 
+    // put_reg(&cpu, REG_BC, 0xA354);
+    // put_reg(&cpu, REG_AF, 0xA354);
+    // print_cpu(&cpu);
 
     /* unload_cartridge(&game_cartridge); */
 

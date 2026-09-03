@@ -16,12 +16,23 @@ typedef struct
 } Cpu;
 
 typedef enum {
-    A, F, B, C, D, E, H, L, AF, BC, DE, HL, PC, SP
+    REG_A, REG_F, REG_B, REG_C, REG_D, REG_E, REG_H, REG_L, REG_AF, REG_BC, REG_DE, REG_HL, REG_PC, REG_SP
 } Register;
 
+typedef enum {
+    FLAG_Z, FLAG_N, FLAG_H, FLAG_C, FLAG_ALL
+} Flag;
+
+typedef enum {
+    OFF, ON
+} Flag_state;
 
 void initilize_cpu(Cpu *cpu);
 void print_cpu(Cpu* cpu);
 uint8_t get_8b_register(Cpu *cpu, Register reg);
 uint16_t get_16b_register(Cpu *cpu, Register reg);
+void put_reg(Cpu *cpu, Register reg, uint16_t val);
+void set_flag(Cpu *cpu, Flag flag, Flag_state state);
+uint8_t read_flag(Cpu *cpu, Flag flag);
 int64_t cpu_step(Cpu *cpu, Cartridge *cartridge);
+
