@@ -1,6 +1,7 @@
 #include "stdio.h"
 #include "cartridge.h"
 #include "cpu.h"
+#include "bus.h"
 
 int main(int argc, char **argv)
 {
@@ -19,7 +20,28 @@ int main(int argc, char **argv)
     initilize_cpu(&cpu);
     print_cpu(&cpu);
 
-    printf("\n AF: %.4x \n", get_16b_register(&cpu, 8));
+
+    if (cpu_step(&cpu, &game_cartridge) == -1) {
+        printf("Programm stopped");
+        return 1;
+    };
+    if (cpu_step(&cpu, &game_cartridge) == -1) {
+        printf("Programm stopped");
+        return 1;
+    };
+    if (cpu_step(&cpu, &game_cartridge) == -1) {
+        printf("Programm stopped");
+        return 1;
+    };
+    if (cpu_step(&cpu, &game_cartridge) == -1) {
+        printf("Programm stopped");
+        return 1;
+    };
+    if (cpu_step(&cpu, &game_cartridge) == -1) {
+        printf("Programm stopped");
+        return 1;
+    };
+
 
     /* unload_cartridge(&game_cartridge); */
 

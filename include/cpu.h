@@ -1,6 +1,6 @@
 #pragma once
 #include "stdint.h"
-
+#include "cartridge.h"
 typedef struct
 {
     uint8_t A;
@@ -24,3 +24,4 @@ void initilize_cpu(Cpu *cpu);
 void print_cpu(Cpu* cpu);
 uint8_t get_8b_register(Cpu *cpu, Register reg);
 uint16_t get_16b_register(Cpu *cpu, Register reg);
+int64_t cpu_step(Cpu *cpu, Cartridge *cartridge);

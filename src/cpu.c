@@ -1,6 +1,7 @@
 #include "stdio.h"
 #include "stdint.h"
 #include "cpu.h"
+#include "bus.h"
 
 void initilize_cpu(Cpu *cpu)
 {
@@ -15,7 +16,6 @@ void initilize_cpu(Cpu *cpu)
     cpu->SP = 0xFFFE;
     cpu->PC = 0x0100;
 }
-
 
 void print_cpu(Cpu* cpu)
 {
@@ -70,25 +70,25 @@ uint16_t get_16b_register(Cpu *cpu, Register reg)
     case AF:
         res = cpu->A;
         res <<= 8;
-        res ^= cpu->F;
+        res |= cpu->F;
         return res;
         break;
     case BC:
         res = cpu->B;
         res <<= 8;
-        res ^= cpu->C;
+        res |= cpu->C;
         return res;
         break;
     case DE:
         res = cpu->D;
         res <<= 8;
-        res ^= cpu->E;
+        res |= cpu->E;
         return res;
         break;
     case HL:
         res = cpu->H;
         res <<= 8;
-        res ^= cpu->L;
+        res |= cpu->L;
         return res;
         break;
     case SP:
@@ -102,4 +102,35 @@ uint16_t get_16b_register(Cpu *cpu, Register reg)
         break;
     }
     return res;
+}
+
+int64_t cpu_step(Cpu *cpu, Cartridge *cartridge)
+{
+    uint16_t pc_address = get_16b_register(cpu, PC);
+    uint8_t opcode = get_address(pc_address, cartridge);
+    [[maybe_unused]] uint64_t cycles = 0;
+
+    printf("PC=%.4x OPCODE=%.2x \n", pc_address, opcode);
+    cpu->PC++;
+
+    if(opcode == 0x00)
+    {
+        cycles = 4;
+        return cycles;
+    } else if (opcode == 0xC3)
+    {
+        /* JP with 2 argument bytes */
+        uint16_t jp_address = 0;
+        uint8_t jp_address_byte_1 = get_address(get_16b_register(cpu, PC), cartridge);
+        cpu->PC++;
+        uint8_t jp_address_byte_2 = get_address(get_16b_register(cpu, PC), cartridge);
+        jp_address = jp_address_byte_2;
+        jp_address <<= 8;
+        jp_address |= jp_address_byte_1;
+        cpu->PC = jp_address;
+        cycles = 16;
+        return cycles;
+    }
+    printf("Unsopported opcode \n");
+    return -1;
 }
