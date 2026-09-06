@@ -20,15 +20,13 @@ int main(int argc, char **argv)
     initilize_cpu(&cpu);
     print_cpu(&cpu);
 
-    printf("F: %.2x \n", cpu.F);
-    set_flag(&cpu, FLAG_Z, ON);
-    printf("F: %.2x \n", read_flag(&cpu, FLAG_Z));
-    set_flag(&cpu, FLAG_Z, OFF);
-    printf("F: %.2x \n", read_flag(&cpu, FLAG_Z));
-    set_flag(&cpu, FLAG_H, ON);
-    printf("F: %.2x \n", read_flag(&cpu, FLAG_H));
-    set_flag(&cpu, FLAG_ALL, ON);
-    printf("F: %.2x \n", cpu.F);
+    int i = 0;
+    while (i < 100)
+    {
+        if (cpu_step(&cpu, &game_cartridge) == -1) break;
+        print_cpu(&cpu);
+        i++;
+    }
 
 
     // put_reg(&cpu, REG_BC, 0xA354);

@@ -27,12 +27,18 @@ typedef enum {
     OFF, ON
 } Flag_state;
 
+typedef enum {
+    ADD, INC, ADC, SUB, DEC, SBC, AND, XOR, OR, CP
+} Operation;
+
 void initilize_cpu(Cpu *cpu);
 void print_cpu(Cpu* cpu);
 uint8_t get_8b_register(Cpu *cpu, Register reg);
 uint16_t get_16b_register(Cpu *cpu, Register reg);
 void put_reg(Cpu *cpu, Register reg, uint16_t val);
 void set_flag(Cpu *cpu, Flag flag, Flag_state state);
-uint8_t read_flag(Cpu *cpu, Flag flag);
+Flag_state read_flag(Cpu *cpu, Flag flag);
+Flag_state check_for_carry(Cpu *cpu, uint16_t val_1, uint16_t val_2, Operation op);
+Flag_state check_for_half_carry(Cpu *cpu, uint8_t val_1, uint8_t val_2, Operation op);
 int64_t cpu_step(Cpu *cpu, Cartridge *cartridge);
 
