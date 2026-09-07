@@ -104,6 +104,25 @@ uint16_t get_16b_register(Cpu *cpu, Register reg)
     return res;
 }
 
+
+uint8_t fetch_8b(Cpu *cpu, Memory *memory)
+{
+    uint8_t res = get_address(get_16b_register(cpu, REG_PC), memory);
+    cpu->PC++;
+    return res;
+}
+
+uint16_t fetch_16b(Cpu *cpu, Memory *memory)
+{
+    uint16_t res = 0;
+    uint8_t byte_1 = fetch_8b(cpu, memory);
+    uint8_t byte_2 = fetch_8b(cpu, memory);
+    res = byte_2;
+    res <<= 8;
+    res |= byte_1;
+    return res;
+}
+
 void put_reg(Cpu *cpu, Register reg, uint16_t val)
 {
     switch (reg)
@@ -275,10 +294,10 @@ Register register_decoding(uint8_t reg_encoding)
             (reg_bits == 0b100) ? REG_H : (reg_bits == 0b101) ? REG_L : (reg_bits == 0b110) ? REG_HL : REG_A;
 }
 
-int64_t cpu_step(Cpu *cpu, Cartridge *cartridge)
+int64_t cpu_step(Cpu *cpu, Memory *memory)
 {
     uint16_t pc_address = get_16b_register(cpu, REG_PC);
-    uint8_t opcode = get_address(pc_address, cartridge);
+    uint8_t opcode = get_address(pc_address, memory);
     int32_t cycles = 0;
 
     cpu->PC++;
@@ -289,73 +308,80 @@ int64_t cpu_step(Cpu *cpu, Cartridge *cartridge)
     }
     else if (opcode == 0x01)
     {
-        uint16_t val = fetch_16b(cpu, cartridge);
+        uint16_t val = fetch_16b(cpu, memory);
         put_reg(cpu, REG_BC, val);
         cycles = 12;
     }
     else if (opcode == 0x06)
     {
-        uint8_t val = fetch_8b(cpu, cartridge);
+        uint8_t val = fetch_8b(cpu, memory);
         put_reg(cpu, REG_B, val);
         cycles = 8;
     }
     else if (opcode == 0x0E)
     {
-        uint8_t val = fetch_8b(cpu, cartridge);
+        uint8_t val = fetch_8b(cpu, memory);
         put_reg(cpu, REG_C, val);
         cycles = 8;
     }
     else if (opcode == 0x11)
     {
-        uint16_t val = fetch_16b(cpu, cartridge);
+        uint16_t val = fetch_16b(cpu, memory);
         put_reg(cpu, REG_DE, val);
         cycles = 12;
     }
     else if (opcode == 0x16)
     {
-        uint8_t val = fetch_8b(cpu, cartridge);
+        uint8_t val = fetch_8b(cpu, memory);
         put_reg(cpu, REG_D, val);
         cycles = 8;
     }
     else if (opcode == 0x1E)
     {
-        uint8_t val = fetch_8b(cpu, cartridge);
+        uint8_t val = fetch_8b(cpu, memory);
         put_reg(cpu, REG_E, val);
         cycles = 8;
     }
     else if (opcode == 0x21)
     {
-        uint16_t val = fetch_16b(cpu, cartridge);
+        uint16_t val = fetch_16b(cpu, memory);
         put_reg(cpu, REG_HL, val);
         cycles = 12;
     }
     else if (opcode == 0x26)
     {
-        uint8_t val = fetch_8b(cpu, cartridge);
+        uint8_t val = fetch_8b(cpu, memory);
         put_reg(cpu, REG_H, val);
         cycles = 8;
     }
     else if (opcode == 0x2E)
     {
-        uint8_t val = fetch_8b(cpu, cartridge);
+        uint8_t val = fetch_8b(cpu, memory);
         put_reg(cpu, REG_L, val);
         cycles = 8;
     }
     else if (opcode == 0x31)
     {
-        uint16_t val = fetch_16b(cpu, cartridge);
+        uint16_t val = fetch_16b(cpu, memory);
         put_reg(cpu, REG_SP, val);
+        cycles = 12;
+    }
+    else if (opcode == 0x36)
+    {
+        uint8_t val = fetch_8b(cpu, memory);
+        uint16_t hl_addr = get_16b_register(cpu, REG_HL);
+        put_address(hl_addr, memory, val);
         cycles = 12;
     }
     else if (opcode == 0x3E)
     {
-        uint8_t val = fetch_8b(cpu, cartridge);
+        uint8_t val = fetch_8b(cpu, memory);
         put_reg(cpu, REG_A, val);
         cycles = 8;
     }
     else if (opcode == 0xC3)
     {
-        uint16_t jp_address = fetch_16b(cpu, cartridge);
+        uint16_t jp_address = fetch_16b(cpu, memory);
         cpu->PC = jp_address;
         cycles = 16;
     }
@@ -373,13 +399,13 @@ int64_t cpu_step(Cpu *cpu, Cartridge *cartridge)
                 cycles = 4;
             } else 
             {
-                put_address(get_address(get_8b_register(cpu, dest_reg), cartridge), cartridge, get_8b_register(cpu, source_reg));
+                put_address(get_16b_register(cpu, dest_reg), memory, get_8b_register(cpu, source_reg));
                 cycles = 8;
             }
         }
         else if (source_reg == REG_HL)
         {
-            put_reg(cpu, dest_reg, get_address(get_8b_register(cpu, source_reg), cartridge));
+            put_reg(cpu, dest_reg, get_address(get_16b_register(cpu, source_reg), memory));
             cycles = 8;
         } else {
             put_reg(cpu, dest_reg, get_8b_register(cpu, source_reg));
@@ -543,7 +569,7 @@ int64_t cpu_step(Cpu *cpu, Cartridge *cartridge)
     else if (opcode == 0x34)
     {
         uint16_t hl_addr = get_16b_register(cpu, REG_HL);
-        uint8_t hl_addr_val = get_address(hl_addr, cartridge);
+        uint8_t hl_addr_val = get_address(hl_addr, memory);
 
         ((hl_addr_val & 0x0F) == 0x00) ? set_flag(cpu, FLAG_H, ON) : set_flag(cpu, FLAG_H, OFF);
         set_flag(cpu, FLAG_N, OFF);
@@ -552,13 +578,13 @@ int64_t cpu_step(Cpu *cpu, Cartridge *cartridge)
         
         (hl_addr_val == 0) ? set_flag(cpu, FLAG_Z, ON) : set_flag(cpu, FLAG_Z, OFF);
         
-        put_address(hl_addr, cartridge, hl_addr_val);
-        cycles = 4;
+        put_address(hl_addr, memory, hl_addr_val);
+        cycles = 12;
     }
     else if (opcode == 0x35)
     {
         uint16_t hl_addr = get_16b_register(cpu, REG_HL);
-        uint8_t hl_addr_val = get_address(hl_addr, cartridge);
+        uint8_t hl_addr_val = get_address(hl_addr, memory);
 
         ((hl_addr_val & 0x0F) == 0x00) ? set_flag(cpu, FLAG_H, ON) : set_flag(cpu, FLAG_H, OFF);
         set_flag(cpu, FLAG_N, ON);
@@ -567,22 +593,27 @@ int64_t cpu_step(Cpu *cpu, Cartridge *cartridge)
         
         (hl_addr_val == 0) ? set_flag(cpu, FLAG_Z, ON) : set_flag(cpu, FLAG_Z, OFF);
         
-        put_address(hl_addr, cartridge, hl_addr_val);
-        cycles = 4;
+        put_address(hl_addr, memory, hl_addr_val);
+        cycles = 12;
     }
     /* ADD A r */
     else if (opcode >= 0x80 && opcode <= 0x87) 
     {
         Register second_reg = register_decoding((opcode & 0b00000111));
         uint8_t reg_A_val = get_8b_register(cpu, REG_A);
+        uint8_t second_val = 0;
 
         if (second_reg == REG_HL)
         {
-            /*HL implementation*/
+            uint16_t hl_addr = get_16b_register(cpu, REG_HL);
+            second_val = get_address(hl_addr, memory);
             cycles = 8;
-        } else 
+        } 
+        else 
         {
-            uint8_t second_val = get_8b_register(cpu, second_reg);
+            second_val = get_8b_register(cpu, second_reg);
+            cycles = 4;
+        }
             uint8_t sum = reg_A_val + second_val;
 
             set_flag(cpu, FLAG_Z, check_for_zero(sum));
@@ -591,74 +622,78 @@ int64_t cpu_step(Cpu *cpu, Cartridge *cartridge)
             set_flag(cpu, FLAG_C, check_for_carry(cpu, reg_A_val, second_val, ADD));
 
             put_reg(cpu, REG_A, sum);
-
-            cycles = 4;
-        }
     }
     /* ADC A r */
     else if (opcode >= 0x88 && opcode <= 0x8F) 
     {
         Register second_reg = register_decoding((opcode & 0b00000111));
         uint8_t reg_A_val = get_8b_register(cpu, REG_A);
+        uint8_t second_val = 0;
 
         if (second_reg == REG_HL)
         {
-            /*HL implementation*/
+            uint16_t hl_addr = get_16b_register(cpu, REG_HL);
+            second_val = get_address(hl_addr, memory);
             cycles = 8;
         } else 
         {
-            uint8_t second_val = get_8b_register(cpu, second_reg);
-            uint8_t carry_val = read_flag(cpu, FLAG_C);
-            uint8_t sum = reg_A_val + second_val + carry_val;
-
-            set_flag(cpu, FLAG_Z, check_for_zero(sum));
-            set_flag(cpu, FLAG_N, OFF);
-            set_flag(cpu, FLAG_H, check_for_half_carry(cpu, reg_A_val, second_val, ADC));
-            set_flag(cpu, FLAG_C, check_for_carry(cpu, reg_A_val, second_val, ADC));
-
-            put_reg(cpu, REG_A, sum);
-
+            second_val = get_8b_register(cpu, second_reg);
             cycles = 4;
         }
+        uint8_t carry_val = read_flag(cpu, FLAG_C);
+        uint8_t sum = reg_A_val + second_val + carry_val;
+
+        set_flag(cpu, FLAG_Z, check_for_zero(sum));
+        set_flag(cpu, FLAG_N, OFF);
+        set_flag(cpu, FLAG_H, check_for_half_carry(cpu, reg_A_val, second_val, ADC));
+        set_flag(cpu, FLAG_C, check_for_carry(cpu, reg_A_val, second_val, ADC));
+
+        put_reg(cpu, REG_A, sum);
     }
     /* SUB A r */
     else if (opcode >= 0x90 && opcode <= 0x97) 
     {
         Register second_reg = register_decoding((opcode & 0b00000111));
         uint8_t reg_A_val = get_8b_register(cpu, REG_A);
+        uint8_t second_val = 0;
 
         if (second_reg == REG_HL)
         {
-            /*HL implementation*/
+            uint16_t hl_addr = get_16b_register(cpu, REG_HL);
+            second_val = get_address(hl_addr, memory);
             cycles = 8;
         } else 
         {
-            uint8_t second_val = get_8b_register(cpu, second_reg);
-            uint8_t res = reg_A_val - second_val;
-
-            set_flag(cpu, FLAG_Z, check_for_zero(res));
-            set_flag(cpu, FLAG_N, ON);
-            set_flag(cpu, FLAG_H, check_for_half_carry(cpu, reg_A_val, second_val, SUB));
-            set_flag(cpu, FLAG_C, check_for_carry(cpu, reg_A_val, second_val, SUB));
-
-            put_reg(cpu, REG_A, res);
-
+            second_val = get_8b_register(cpu, second_reg);
             cycles = 4;
         }
+
+        uint8_t res = reg_A_val - second_val;
+
+        set_flag(cpu, FLAG_Z, check_for_zero(res));
+        set_flag(cpu, FLAG_N, ON);
+        set_flag(cpu, FLAG_H, check_for_half_carry(cpu, reg_A_val, second_val, SUB));
+        set_flag(cpu, FLAG_C, check_for_carry(cpu, reg_A_val, second_val, SUB));
+
+        put_reg(cpu, REG_A, res);
     }
     /* SBC A r */
     else if (opcode >= 0x98 && opcode <= 0x9F) 
     {
         Register second_reg = register_decoding((opcode & 0b00000111));
         uint8_t reg_A_val = get_8b_register(cpu, REG_A);
+        uint8_t second_val = 0;
 
         if (second_reg == REG_HL)
         {
-            /*HL implementation*/
+            uint16_t hl_addr = get_16b_register(cpu, REG_HL);
+            second_val = get_address(hl_addr, memory);
             cycles = 8;
         } else 
         {
-            uint8_t second_val = get_8b_register(cpu, second_reg);
+            second_val = get_8b_register(cpu, second_reg);
+            cycles = 4;
+        }
             uint8_t carry_val = read_flag(cpu, FLAG_C);
             uint8_t res = reg_A_val - second_val - carry_val;
 
@@ -668,114 +703,116 @@ int64_t cpu_step(Cpu *cpu, Cartridge *cartridge)
             if (opcode != 0x9F) set_flag(cpu, FLAG_C, check_for_carry(cpu, reg_A_val, second_val, SBC));
 
             put_reg(cpu, REG_A, res);
-
-            cycles = 4;
-        }
+           
     }
     /* AND A r */
     else if (opcode >= 0xA0 && opcode <= 0xA7) 
     {
         Register second_reg = register_decoding((opcode & 0b00000111));
         uint8_t reg_A_val = get_8b_register(cpu, REG_A);
+        uint8_t second_val = 0;
 
         if (second_reg == REG_HL)
         {
-            /*HL implementation*/
+            uint16_t hl_addr = get_16b_register(cpu, REG_HL);
+            second_val = get_address(hl_addr, memory);
             cycles = 8;
         } else 
         {
-            uint8_t second_val = get_8b_register(cpu, second_reg);
-            uint8_t res = reg_A_val & second_val;
-
-            set_flag(cpu, FLAG_Z, check_for_zero(res));
-            set_flag(cpu, FLAG_N, OFF);
-            set_flag(cpu, FLAG_H, ON);
-            set_flag(cpu, FLAG_C, OFF);
-
-            put_reg(cpu, REG_A, res);
-
+            second_val = get_8b_register(cpu, second_reg);
             cycles = 4;
         }
+        uint8_t res = reg_A_val & second_val;
+
+        set_flag(cpu, FLAG_Z, check_for_zero(res));
+        set_flag(cpu, FLAG_N, OFF);
+        set_flag(cpu, FLAG_H, ON);
+        set_flag(cpu, FLAG_C, OFF);
+
+        put_reg(cpu, REG_A, res);
     }
     /* XOR A r */
     else if (opcode >= 0xA8 && opcode <= 0xAF) 
     {
         Register second_reg = register_decoding((opcode & 0b00000111));
         uint8_t reg_A_val = get_8b_register(cpu, REG_A);
-
+        uint8_t second_val = 0;
+        
         if (second_reg == REG_HL)
         {
-            /*HL implementation*/
+            uint16_t hl_addr = get_16b_register(cpu, REG_HL);
+            second_val = get_address(hl_addr, memory);
             cycles = 8;
         } else 
         {
-            uint8_t second_val = get_8b_register(cpu, second_reg);
-            uint8_t res = reg_A_val ^ second_val;
-
-            set_flag(cpu, FLAG_Z, check_for_zero(res));
-            set_flag(cpu, FLAG_N, OFF);
-            set_flag(cpu, FLAG_H, OFF);
-            set_flag(cpu, FLAG_C, OFF);
-
-            put_reg(cpu, REG_A, res);
-
+            second_val = get_8b_register(cpu, second_reg);
             cycles = 4;
         }
+        uint8_t res = reg_A_val ^ second_val;
+
+        set_flag(cpu, FLAG_Z, check_for_zero(res));
+        set_flag(cpu, FLAG_N, OFF);
+        set_flag(cpu, FLAG_H, OFF);
+        set_flag(cpu, FLAG_C, OFF);
+
+        put_reg(cpu, REG_A, res);
     }
     /* OR A r */
     else if (opcode >= 0xB0 && opcode <= 0xB7) 
     {
         Register second_reg = register_decoding((opcode & 0b00000111));
         uint8_t reg_A_val = get_8b_register(cpu, REG_A);
+        uint8_t second_val = 0;
 
         if (second_reg == REG_HL)
         {
-            /*HL implementation*/
+            uint16_t hl_addr = get_16b_register(cpu, REG_HL);
+            second_val = get_address(hl_addr, memory);
             cycles = 8;
         } else 
         {
-            uint8_t second_val = get_8b_register(cpu, second_reg);
-            uint8_t res = reg_A_val | second_val;
-
-            set_flag(cpu, FLAG_Z, check_for_zero(res));
-            set_flag(cpu, FLAG_N, OFF);
-            set_flag(cpu, FLAG_H, OFF);
-            set_flag(cpu, FLAG_C, OFF);
-
-            put_reg(cpu, REG_A, res);
-
+            second_val = get_8b_register(cpu, second_reg);
             cycles = 4;
         }
+
+        uint8_t res = reg_A_val | second_val;
+
+        set_flag(cpu, FLAG_Z, check_for_zero(res));
+        set_flag(cpu, FLAG_N, OFF);
+        set_flag(cpu, FLAG_H, OFF);
+        set_flag(cpu, FLAG_C, OFF);
+
+        put_reg(cpu, REG_A, res);
     }
     /* CP A r */
     else if (opcode >= 0xB8 && opcode <= 0xBF) 
     {
         Register second_reg = register_decoding((opcode & 0b00000111));
         uint8_t reg_A_val = get_8b_register(cpu, REG_A);
+        uint8_t second_val = 0;
 
         if (second_reg == REG_HL)
         {
-            /*HL implementation*/
+            uint16_t hl_addr = get_16b_register(cpu, REG_HL);
+            second_val = get_address(hl_addr, memory);
             cycles = 8;
         } else 
         {
-            uint8_t second_val = get_8b_register(cpu, second_reg);
-            uint8_t res = reg_A_val - second_val;
-
-            set_flag(cpu, FLAG_Z, check_for_zero(res));
-            set_flag(cpu, FLAG_N, ON);
-            set_flag(cpu, FLAG_H, check_for_half_carry(cpu, reg_A_val, second_val, SUB));
-            set_flag(cpu, FLAG_C, check_for_carry(cpu, reg_A_val, second_val, SUB));
-
-
+            second_val = get_8b_register(cpu, second_reg);
             cycles = 4;
         }
+        uint8_t res = reg_A_val - second_val;
+
+        set_flag(cpu, FLAG_Z, check_for_zero(res));
+        set_flag(cpu, FLAG_N, ON);
+        set_flag(cpu, FLAG_H, check_for_half_carry(cpu, reg_A_val, second_val, SUB));
+        set_flag(cpu, FLAG_C, check_for_carry(cpu, reg_A_val, second_val, SUB));
     }
     /* ADD A n8 */
     else if (opcode == 0xC6) 
     {
         uint8_t reg_A_val = get_8b_register(cpu, REG_A);
-        uint8_t second_val = fetch_8b(cpu, cartridge);
+        uint8_t second_val = fetch_8b(cpu, memory);
 
         uint8_t res = reg_A_val + second_val;
 
@@ -792,7 +829,7 @@ int64_t cpu_step(Cpu *cpu, Cartridge *cartridge)
     else if (opcode == 0xD6) 
     {
         uint8_t reg_A_val = get_8b_register(cpu, REG_A);
-        uint8_t second_val = fetch_8b(cpu, cartridge);
+        uint8_t second_val = fetch_8b(cpu, memory);
 
         uint8_t res = reg_A_val - second_val;
 
@@ -809,7 +846,7 @@ int64_t cpu_step(Cpu *cpu, Cartridge *cartridge)
     else if (opcode == 0xE6) 
     {
         uint8_t reg_A_val = get_8b_register(cpu, REG_A);
-        uint8_t second_val = fetch_8b(cpu, cartridge);
+        uint8_t second_val = fetch_8b(cpu, memory);
 
         uint8_t res = reg_A_val & second_val;
 
@@ -826,7 +863,7 @@ int64_t cpu_step(Cpu *cpu, Cartridge *cartridge)
     else if (opcode == 0xF6) 
     {
         uint8_t reg_A_val = get_8b_register(cpu, REG_A);
-        uint8_t second_val = fetch_8b(cpu, cartridge);
+        uint8_t second_val = fetch_8b(cpu, memory);
 
         uint8_t res = reg_A_val | second_val;
 
@@ -843,7 +880,7 @@ int64_t cpu_step(Cpu *cpu, Cartridge *cartridge)
     else if (opcode == 0xCE) 
     {
         uint8_t reg_A_val = get_8b_register(cpu, REG_A);
-        uint8_t second_val = fetch_8b(cpu, cartridge);
+        uint8_t second_val = fetch_8b(cpu, memory);
 
         uint8_t res = reg_A_val + second_val + read_flag(cpu, FLAG_C);
 
@@ -860,7 +897,7 @@ int64_t cpu_step(Cpu *cpu, Cartridge *cartridge)
     else if (opcode == 0xDE) 
     {
         uint8_t reg_A_val = get_8b_register(cpu, REG_A);
-        uint8_t second_val = fetch_8b(cpu, cartridge);
+        uint8_t second_val = fetch_8b(cpu, memory);
 
         uint8_t res = reg_A_val - second_val - read_flag(cpu, FLAG_C);
 
@@ -877,7 +914,7 @@ int64_t cpu_step(Cpu *cpu, Cartridge *cartridge)
     else if (opcode == 0xEE) 
     {
         uint8_t reg_A_val = get_8b_register(cpu, REG_A);
-        uint8_t second_val = fetch_8b(cpu, cartridge);
+        uint8_t second_val = fetch_8b(cpu, memory);
 
         uint8_t res = reg_A_val ^ second_val;
 
@@ -894,7 +931,7 @@ int64_t cpu_step(Cpu *cpu, Cartridge *cartridge)
     else if (opcode == 0xFE) 
     {
         uint8_t reg_A_val = get_8b_register(cpu, REG_A);
-        uint8_t second_val = fetch_8b(cpu, cartridge);
+        uint8_t second_val = fetch_8b(cpu, memory);
 
         uint8_t res = reg_A_val - second_val;
 

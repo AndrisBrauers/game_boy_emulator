@@ -1,7 +1,11 @@
 #pragma once
 #include "stdint.h"
+#include "bus.h"
 #include "cartridge.h"
-typedef struct
+#include "cpu.h"
+
+typedef struct Cpu Cpu;
+struct Cpu
 {
     uint8_t A;
     uint8_t F;
@@ -13,7 +17,7 @@ typedef struct
     uint8_t L;
     uint16_t SP;
     uint16_t PC;
-} Cpu;
+};
 
 typedef enum {
     REG_A, REG_F, REG_B, REG_C, REG_D, REG_E, REG_H, REG_L, REG_AF, REG_BC, REG_DE, REG_HL, REG_PC, REG_SP
@@ -35,10 +39,12 @@ void initilize_cpu(Cpu *cpu);
 void print_cpu(Cpu* cpu);
 uint8_t get_8b_register(Cpu *cpu, Register reg);
 uint16_t get_16b_register(Cpu *cpu, Register reg);
+uint8_t fetch_8b(Cpu* cpu, Memory* memory);
+uint16_t fetch_16b(Cpu* cpu, Memory* memory);
 void put_reg(Cpu *cpu, Register reg, uint16_t val);
 void set_flag(Cpu *cpu, Flag flag, Flag_state state);
 Flag_state read_flag(Cpu *cpu, Flag flag);
 Flag_state check_for_carry(Cpu *cpu, uint16_t val_1, uint16_t val_2, Operation op);
 Flag_state check_for_half_carry(Cpu *cpu, uint8_t val_1, uint8_t val_2, Operation op);
-int64_t cpu_step(Cpu *cpu, Cartridge *cartridge);
+int64_t cpu_step(Cpu *cpu, Memory *memory);
 

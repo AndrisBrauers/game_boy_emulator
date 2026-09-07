@@ -17,13 +17,16 @@ int main(int argc, char **argv)
     print_cartridge(&game_cartridge);
 
     Cpu cpu;
+    Memory memory;
+
+    initilize_memory(&memory, &game_cartridge);
     initilize_cpu(&cpu);
     print_cpu(&cpu);
 
     int i = 0;
     while (i < 100)
     {
-        if (cpu_step(&cpu, &game_cartridge) == -1) break;
+        if (cpu_step(&cpu, &memory) == -1) break;
         print_cpu(&cpu);
         i++;
     }
@@ -33,7 +36,8 @@ int main(int argc, char **argv)
     // put_reg(&cpu, REG_AF, 0xA354);
     // print_cpu(&cpu);
 
-    /* unload_cartridge(&game_cartridge); */
+    unload_cartridge(&game_cartridge); 
+    unload_memory(&memory);
 
     return 0;
 }

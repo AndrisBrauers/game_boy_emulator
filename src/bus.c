@@ -2,43 +2,55 @@
 #include "stdint.h"
 #include "cartridge.h"
 #include "stdio.h"
+#include "stdlib.h"
 
-uint8_t get_address(uint16_t address, Cartridge* cartridge)
+#define RAM_SIZE 8192
+#define HRAM_SIZE 127
+
+void initilize_memory(Memory* memory, Cartridge* cartridge)
 {
-    if(address > cartridge->read_size){
-        printf("Address 0x%.2x larger than the loaded ROM size", address);
-        return 0;
-    }
-    if(address < 0x8000)
+    memory->rom = cartridge->rom_ptr;
+    memory->ram = malloc(RAM_SIZE);
+    memory->hram = malloc(HRAM_SIZE);
+}
+
+void unload_memory(Memory* memory)
+{
+    free(memory->ram);
+}
+
+uint8_t get_address(uint16_t address, Memory* memory)
+{
+    if (address >= 0x0000 & address < 0xC000)
     {
-        return cartridge->rom_ptr[address];
-    }
-    printf("Address 0x%.2x out of bounds of cartridge ROM", address);
+        return memory->rom[address];
+    } 
+    else if (address >= 0xC000 & address < 0xE000)
+    {
+        return memory->ram[address];
+    } 
+    else if (address >= 0xFF80 & address < 0xFFFF)
+    {
+        return memory->hram[address];
+    } 
+ 
+    printf("Address 0x%.2x out of bounds of memory", address);
+    
     return 0;
 }
 
-void put_address(uint16_t address, Cartridge* cartridge, uint8_t val)
+void put_address(uint16_t address, Memory* memory, uint8_t val)
 {
-    if(address > cartridge->read_size){
-        printf("Address 0x%.2x larger than the loaded ROM size", address);
-    }
-    cartridge->rom_ptr[address] = val;
-}
-
-uint8_t fetch_8b(Cpu *cpu,Cartridge *cartridge)
-{
-    uint8_t res = get_address(get_16b_register(cpu, REG_PC), cartridge);
-    cpu->PC++;
-    return res;
-}
-
-uint16_t fetch_16b(Cpu *cpu, Cartridge *cartridge)
-{
-    uint16_t res = 0;
-    uint8_t byte_1 = fetch_8b(cpu, cartridge);
-    uint8_t byte_2 = fetch_8b(cpu, cartridge);
-    res = byte_2;
-    res <<= 8;
-    res |= byte_1;
-    return res;
+    if (address >= 0x0000 & address < 0xC000)
+    {
+         printf("Address 0x%.2x can not be put in ROM", address);
+    } 
+    else if (address >= 0xC000 & address < 0xE000)
+    {
+        memory->ram[address] = val;
+    } 
+    else if (address >= 0xFF80 & address < 0xFFFF)
+    {
+        memory->hram[address] = val;
+    } 
 }
