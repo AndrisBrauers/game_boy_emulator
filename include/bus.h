@@ -13,5 +13,6 @@ struct Memory
 
 void initilize_memory(Memory* memory, Cartridge* cartridge);
 void unload_memory(Memory* memory);
-uint8_t get_address(uint16_t address, Memory* memory);
-void put_address(uint16_t address, Memory* memory, uint8_t val);
+uint8_t get_8b_val(uint16_t address, Memory* memory);
+void put_8b_val(uint16_t address, Memory* memory, uint8_t val);
+void put_16b_val(uint16_t address, Memory* memory, uint16_t val);

@@ -2,6 +2,7 @@
 #include "cartridge.h"
 #include "cpu.h"
 #include "bus.h"
+#include "decoder.h"
 
 int main(int argc, char **argv)
 {
@@ -21,6 +22,7 @@ int main(int argc, char **argv)
 
     initilize_memory(&memory, &game_cartridge);
     initilize_cpu(&cpu);
+    init_decoder_tables();
     print_cpu(&cpu);
 
     int i = 0;
